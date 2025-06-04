@@ -1,45 +1,21 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, LogOut } from "lucide-react";
-import { useAuth } from '@/contexts/AuthContext';
+import { Plus, FileText, TrendingUp, Users, Calendar, Target } from "lucide-react";
 import { useLeads } from '@/hooks/useLeads';
 import LeadForm from "@/components/LeadForm";
 import LeadTable from "@/components/LeadTable";
+import Dashboard from "@/components/Dashboard";
 import { Lead } from "@/types/Lead";
 import { exportToCSV } from "@/utils/exportUtils";
 import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
   const { leads, isLoading, addLead, updateLead, deleteLead } = useLeads();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
 
   const handleAddLead = (newLead: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>) => {
     addLead(newLead);
@@ -69,106 +45,70 @@ const Index = () => {
     });
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-  };
-
-  const getStatusCounts = () => {
-    const counts = {
-      new: 0,
-      contacted: 0,
-      negotiation: 0,
-      won: 0,
-      lost: 0,
-    };
-    
-    leads.forEach(lead => {
-      counts[lead.status]++;
-    });
-    
-    return counts;
-  };
-
-  const statusCounts = getStatusCounts();
-
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Lead Management System</h1>
-            <p className="text-gray-600">Welcome back, {user.email}!</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+              <Target className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">LeadCRM</h1>
+              <p className="text-purple-100">Lead Management Dashboard</p>
+            </div>
           </div>
-          <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={() => setIsFormOpen(true)} 
+              className="bg-white text-purple-600 hover:bg-gray-100 flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add New Lead
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExport} 
+              className="border-white text-white hover:bg-white hover:text-purple-600 flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">{statusCounts.new}</div>
-              <div className="text-sm text-gray-600">New Leads</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-orange-600">{statusCounts.contacted}</div>
-              <div className="text-sm text-gray-600">Contacted</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-purple-600">{statusCounts.negotiation}</div>
-              <div className="text-sm text-gray-600">In Negotiation</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">{statusCounts.won}</div>
-              <div className="text-sm text-gray-600">Closed Won</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-red-600">{statusCounts.lost}</div>
-              <div className="text-sm text-gray-600">Closed Lost</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-4 mb-6">
-          <Button onClick={() => setIsFormOpen(true)} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add New Lead
-          </Button>
-          <Button variant="outline" onClick={handleExport} className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Export to CSV
-          </Button>
-        </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="table" className="w-full">
-          <TabsList>
-            <TabsTrigger value="table">Lead Table</TabsTrigger>
+      <div className="max-w-7xl mx-auto p-6">
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="mb-6 bg-white shadow-sm">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="leads" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Leads
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="table">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Leads ({leads.length})</CardTitle>
+          <TabsContent value="dashboard">
+            <Dashboard leads={leads} isLoading={isLoading} />
+          </TabsContent>
+
+          <TabsContent value="leads">
+            <Card className="shadow-lg border-0">
+              <CardHeader className="bg-white border-b">
+                <CardTitle className="flex items-center gap-2 text-gray-800">
+                  <Users className="h-5 w-5" />
+                  All Leads ({leads.length})
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-2 text-gray-600">Loading leads...</p>
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading leads...</p>
                   </div>
                 ) : (
                   <LeadTable 
@@ -183,7 +123,7 @@ const Index = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Lead Form Modal/Drawer */}
+        {/* Lead Form Modal */}
         {isFormOpen && (
           <LeadForm
             lead={editingLead}
