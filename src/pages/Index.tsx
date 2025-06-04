@@ -1,9 +1,12 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, LogOut } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
+import { useLeads } from '@/hooks/useLeads';
 import LeadForm from "@/components/LeadForm";
 import LeadTable from "@/components/LeadTable";
 import { Lead } from "@/types/Lead";
@@ -11,47 +14,42 @@ import { exportToCSV } from "@/utils/exportUtils";
 import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { leads, isLoading, addLead, updateLead, deleteLead } = useLeads();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
-  // Load leads from localStorage on component mount
   useEffect(() => {
-    const savedLeads = localStorage.getItem('leads');
-    if (savedLeads) {
-      setLeads(JSON.parse(savedLeads));
+    if (!loading && !user) {
+      navigate('/auth');
     }
-  }, []);
+  }, [user, loading, navigate]);
 
-  // Save leads to localStorage whenever leads change
-  useEffect(() => {
-    localStorage.setItem('leads', JSON.stringify(leads));
-  }, [leads]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleAddLead = (newLead: Omit<Lead, 'id' | 'createdAt'>) => {
-    const lead: Lead = {
-      ...newLead,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setLeads(prev => [lead, ...prev]);
+  if (!user) {
+    return null;
+  }
+
+  const handleAddLead = (newLead: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>) => {
+    addLead(newLead);
     setIsFormOpen(false);
-    toast({
-      title: "Lead Added",
-      description: "New lead has been successfully added to the system.",
-    });
   };
 
   const handleUpdateLead = (updatedLead: Lead) => {
-    setLeads(prev => prev.map(lead => 
-      lead.id === updatedLead.id ? updatedLead : lead
-    ));
+    updateLead(updatedLead);
     setEditingLead(null);
     setIsFormOpen(false);
-    toast({
-      title: "Lead Updated",
-      description: "Lead information has been successfully updated.",
-    });
   };
 
   const handleEditLead = (lead: Lead) => {
@@ -60,11 +58,7 @@ const Index = () => {
   };
 
   const handleDeleteLead = (leadId: string) => {
-    setLeads(prev => prev.filter(lead => lead.id !== leadId));
-    toast({
-      title: "Lead Deleted",
-      description: "Lead has been successfully removed from the system.",
-    });
+    deleteLead(leadId);
   };
 
   const handleExport = () => {
@@ -73,6 +67,11 @@ const Index = () => {
       title: "Export Successful",
       description: "Leads data has been exported to CSV file.",
     });
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
   const getStatusCounts = () => {
@@ -85,7 +84,7 @@ const Index = () => {
     };
     
     leads.forEach(lead => {
-      counts[lead.status as keyof typeof counts]++;
+      counts[lead.status]++;
     });
     
     return counts;
@@ -97,9 +96,15 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Lead Management System</h1>
-          <p className="text-gray-600">Manage your sales leads effectively and track conversion progress</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Lead Management System</h1>
+            <p className="text-gray-600">Welcome back, {user.email}!</p>
+          </div>
+          <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -160,12 +165,19 @@ const Index = () => {
                 <CardTitle>All Leads ({leads.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                <LeadTable 
-                  leads={leads} 
-                  onEdit={handleEditLead}
-                  onDelete={handleDeleteLead}
-                  onUpdate={handleUpdateLead}
-                />
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading leads...</p>
+                  </div>
+                ) : (
+                  <LeadTable 
+                    leads={leads} 
+                    onEdit={handleEditLead}
+                    onDelete={handleDeleteLead}
+                    onUpdate={handleUpdateLead}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>

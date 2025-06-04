@@ -22,20 +22,20 @@ export const exportToCSV = (leads: Lead[], filename: string = 'leads-export') =>
 
   // Convert leads to CSV rows
   const rows = leads.map(lead => [
-    lead.companyName,
+    lead.company_name,
     lead.email,
-    lead.contactNumber,
-    lead.leadSource,
-    lead.assignedTo,
+    lead.contact_number,
+    lead.lead_source,
+    lead.assigned_to,
     lead.status,
     lead.potential,
-    lead.requirements.replace(/"/g, '""'), // Escape quotes
-    lead.address.replace(/"/g, '""'),
-    lead.deadline,
-    lead.lastFollowUp,
-    lead.nextFollowUp,
-    new Date(lead.createdAt).toLocaleDateString(),
-    lead.meetingSummaries?.length || 0
+    lead.requirements?.replace(/"/g, '""') || '', // Escape quotes
+    lead.address?.replace(/"/g, '""') || '',
+    lead.deadline || '',
+    lead.last_follow_up || '',
+    lead.next_follow_up || '',
+    new Date(lead.created_at).toLocaleDateString(),
+    lead.meeting_summaries?.length || 0
   ]);
 
   // Combine headers and rows
@@ -60,13 +60,13 @@ export const exportToCSV = (leads: Lead[], filename: string = 'leads-export') =>
 
 // Function to export meeting summaries for a specific lead
 export const exportMeetingSummaries = (lead: Lead) => {
-  if (!lead.meetingSummaries || lead.meetingSummaries.length === 0) {
+  if (!lead.meeting_summaries || lead.meeting_summaries.length === 0) {
     return;
   }
 
   const headers = ['Date', 'Summary'];
-  const rows = lead.meetingSummaries.map(summary => [
-    new Date(summary.date).toLocaleString(),
+  const rows = lead.meeting_summaries.map(summary => [
+    new Date(summary.meeting_date).toLocaleString(),
     summary.summary.replace(/"/g, '""')
   ]);
 
@@ -80,7 +80,7 @@ export const exportMeetingSummaries = (lead: Lead) => {
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `${lead.companyName}-meetings-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `${lead.company_name}-meetings-${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();

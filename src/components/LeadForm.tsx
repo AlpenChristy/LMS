@@ -18,37 +18,35 @@ interface LeadFormProps {
 
 const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
   const [formData, setFormData] = useState({
-    companyName: '',
-    leadSource: '',
-    assignedTo: '',
+    company_name: '',
+    lead_source: '',
+    assigned_to: '',
     requirements: '',
     deadline: '',
     potential: [50],
-    lastFollowUp: '',
-    nextFollowUp: '',
+    last_follow_up: '',
+    next_follow_up: '',
     address: '',
-    contactNumber: '',
+    contact_number: '',
     email: '',
     status: 'new' as const,
-    meetingSummaries: [] as any[],
   });
 
   useEffect(() => {
     if (lead) {
       setFormData({
-        companyName: lead.companyName,
-        leadSource: lead.leadSource,
-        assignedTo: lead.assignedTo,
+        company_name: lead.company_name,
+        lead_source: lead.lead_source,
+        assigned_to: lead.assigned_to,
         requirements: lead.requirements,
         deadline: lead.deadline,
         potential: [lead.potential],
-        lastFollowUp: lead.lastFollowUp,
-        nextFollowUp: lead.nextFollowUp,
+        last_follow_up: lead.last_follow_up,
+        next_follow_up: lead.next_follow_up,
         address: lead.address,
-        contactNumber: lead.contactNumber,
+        contact_number: lead.contact_number,
         email: lead.email,
         status: lead.status,
-        meetingSummaries: lead.meetingSummaries || [],
       });
     }
   }, [lead]);
@@ -58,7 +56,7 @@ const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
     const submitData = {
       ...formData,
       potential: formData.potential[0],
-      ...(lead && { id: lead.id, createdAt: lead.createdAt }),
+      ...(lead && { id: lead.id, created_at: lead.created_at }),
     };
     onSubmit(submitData);
   };
@@ -87,19 +85,19 @@ const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Company Name */}
               <div>
-                <Label htmlFor="companyName">Company Name *</Label>
+                <Label htmlFor="company_name">Company Name *</Label>
                 <Input
-                  id="companyName"
-                  value={formData.companyName}
-                  onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                  id="company_name"
+                  value={formData.company_name}
+                  onChange={(e) => setFormData({...formData, company_name: e.target.value})}
                   required
                 />
               </div>
 
               {/* Lead Source */}
               <div>
-                <Label htmlFor="leadSource">Lead Source *</Label>
-                <Select value={formData.leadSource} onValueChange={(value) => setFormData({...formData, leadSource: value})}>
+                <Label htmlFor="lead_source">Lead Source *</Label>
+                <Select value={formData.lead_source} onValueChange={(value) => setFormData({...formData, lead_source: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select lead source" />
                   </SelectTrigger>
@@ -113,8 +111,8 @@ const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
 
               {/* Assigned To */}
               <div>
-                <Label htmlFor="assignedTo">Assigned To *</Label>
-                <Select value={formData.assignedTo} onValueChange={(value) => setFormData({...formData, assignedTo: value})}>
+                <Label htmlFor="assigned_to">Assigned To *</Label>
+                <Select value={formData.assigned_to} onValueChange={(value) => setFormData({...formData, assigned_to: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select team member" />
                   </SelectTrigger>
@@ -157,11 +155,11 @@ const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
 
               {/* Contact Number */}
               <div>
-                <Label htmlFor="contactNumber">Contact Number *</Label>
+                <Label htmlFor="contact_number">Contact Number *</Label>
                 <Input
-                  id="contactNumber"
-                  value={formData.contactNumber}
-                  onChange={(e) => setFormData({...formData, contactNumber: e.target.value})}
+                  id="contact_number"
+                  value={formData.contact_number}
+                  onChange={(e) => setFormData({...formData, contact_number: e.target.value})}
                   required
                 />
               </div>
@@ -179,23 +177,23 @@ const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
 
               {/* Last Follow-up */}
               <div>
-                <Label htmlFor="lastFollowUp">Last Follow-up Date</Label>
+                <Label htmlFor="last_follow_up">Last Follow-up Date</Label>
                 <Input
-                  id="lastFollowUp"
+                  id="last_follow_up"
                   type="date"
-                  value={formData.lastFollowUp}
-                  onChange={(e) => setFormData({...formData, lastFollowUp: e.target.value})}
+                  value={formData.last_follow_up}
+                  onChange={(e) => setFormData({...formData, last_follow_up: e.target.value})}
                 />
               </div>
 
               {/* Next Follow-up */}
               <div>
-                <Label htmlFor="nextFollowUp">Next Follow-up Date</Label>
+                <Label htmlFor="next_follow_up">Next Follow-up Date</Label>
                 <Input
-                  id="nextFollowUp"
+                  id="next_follow_up"
                   type="date"
-                  value={formData.nextFollowUp}
-                  onChange={(e) => setFormData({...formData, nextFollowUp: e.target.value})}
+                  value={formData.next_follow_up}
+                  onChange={(e) => setFormData({...formData, next_follow_up: e.target.value})}
                 />
               </div>
             </div>

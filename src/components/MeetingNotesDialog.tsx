@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Calendar } from "lucide-react";
 import { Lead, MeetingSummary } from "@/types/Lead";
+import { useLeads } from '@/hooks/useLeads';
 
 interface MeetingNotesDialogProps {
   lead: Lead;
@@ -15,6 +16,7 @@ interface MeetingNotesDialogProps {
 
 const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps) => {
   const [newSummary, setNewSummary] = useState('');
+  const { addMeetingSummary } = useLeads();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -41,20 +43,9 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
   const handleAddSummary = () => {
     if (!newSummary.trim()) return;
 
-    const summary: MeetingSummary = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      summary: newSummary,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedLead = {
-      ...lead,
-      meetingSummaries: [summary, ...(lead.meetingSummaries || [])],
-    };
-
-    onUpdate(updatedLead);
+    addMeetingSummary({ leadId: lead.id, summary: newSummary });
     setNewSummary('');
+    onClose();
   };
 
   const formatDateTime = (dateString: string) => {
@@ -68,13 +59,13 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Meeting Notes - {lead.companyName}
+              Meeting Notes - {lead.company_name}
             </CardTitle>
             <div className="flex items-center gap-2 mt-2">
               <Badge className={getStatusColor(lead.status)}>
                 {getStatusLabel(lead.status)}
               </Badge>
-              <span className="text-sm text-gray-500">Assigned to: {lead.assignedTo}</span>
+              <span className="text-sm text-gray-500">Assigned to: {lead.assigned_to}</span>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -90,10 +81,10 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
                 <span className="text-gray-500">Email:</span> {lead.email}
               </div>
               <div>
-                <span className="text-gray-500">Phone:</span> {lead.contactNumber}
+                <span className="text-gray-500">Phone:</span> {lead.contact_number}
               </div>
               <div>
-                <span className="text-gray-500">Source:</span> {lead.leadSource}
+                <span className="text-gray-500">Source:</span> {lead.lead_source}
               </div>
               <div>
                 <span className="text-gray-500">Potential:</span> {lead.potential}%
@@ -127,16 +118,16 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
           {/* Meeting History */}
           <div>
             <h3 className="font-semibold mb-3">
-              Meeting History ({lead.meetingSummaries?.length || 0})
+              Meeting History ({lead.meeting_summaries?.length || 0})
             </h3>
             
-            {lead.meetingSummaries && lead.meetingSummaries.length > 0 ? (
+            {lead.meeting_summaries && lead.meeting_summaries.length > 0 ? (
               <div className="space-y-4">
-                {lead.meetingSummaries.map((summary) => (
+                {lead.meeting_summaries.map((summary) => (
                   <div key={summary.id} className="border rounded-lg p-4 bg-white">
                     <div className="flex justify-between items-start mb-2">
                       <div className="text-sm text-gray-500">
-                        {formatDateTime(summary.date)}
+                        {formatDateTime(summary.meeting_date)}
                       </div>
                     </div>
                     <p className="text-sm leading-relaxed">{summary.summary}</p>

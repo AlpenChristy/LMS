@@ -9,7 +9,122 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      leads: {
+        Row: {
+          address: string | null
+          assigned_to: string
+          company_name: string
+          contact_number: string
+          created_at: string | null
+          deadline: string | null
+          email: string
+          id: string
+          last_follow_up: string | null
+          lead_source: string
+          next_follow_up: string | null
+          potential: number | null
+          requirements: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          assigned_to: string
+          company_name: string
+          contact_number: string
+          created_at?: string | null
+          deadline?: string | null
+          email: string
+          id?: string
+          last_follow_up?: string | null
+          lead_source: string
+          next_follow_up?: string | null
+          potential?: number | null
+          requirements?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          assigned_to?: string
+          company_name?: string
+          contact_number?: string
+          created_at?: string | null
+          deadline?: string | null
+          email?: string
+          id?: string
+          last_follow_up?: string | null
+          lead_source?: string
+          next_follow_up?: string | null
+          potential?: number | null
+          requirements?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meeting_summaries: {
+        Row: {
+          created_at: string | null
+          id: string
+          lead_id: string
+          meeting_date: string | null
+          summary: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          meeting_date?: string | null
+          summary: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          meeting_date?: string | null
+          summary?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_summaries_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
