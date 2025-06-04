@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Calendar } from "lucide-react";
-import { Lead, MeetingSummary } from "@/types/Lead";
+import { Lead } from "@/types/Lead";
 import { useLeads } from '@/hooks/useLeads';
 
 interface MeetingNotesDialogProps {

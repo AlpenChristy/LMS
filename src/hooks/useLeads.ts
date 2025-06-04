@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Lead } from '@/types/Lead';
+import { Lead, MeetingSummary } from '@/types/Lead';
 
 // Mock data for demonstration
 const mockLeads: Lead[] = [
@@ -140,11 +139,34 @@ export const useLeads = () => {
     saveLeads(updatedLeads);
   };
 
+  const addMeetingSummary = ({ leadId, summary }: { leadId: string; summary: string }) => {
+    const meetingSummary: MeetingSummary = {
+      id: Date.now().toString(),
+      lead_id: leadId,
+      summary,
+      meeting_date: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+
+    const updatedLeads = leads.map(lead => {
+      if (lead.id === leadId) {
+        return {
+          ...lead,
+          meeting_summaries: [...(lead.meeting_summaries || []), meetingSummary]
+        };
+      }
+      return lead;
+    });
+    
+    saveLeads(updatedLeads);
+  };
+
   return {
     leads,
     isLoading,
     addLead,
     updateLead,
-    deleteLead
+    deleteLead,
+    addMeetingSummary
   };
 };
