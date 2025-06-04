@@ -44,9 +44,9 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
   };
 
   const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = lead.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.assignedTo.toLowerCase().includes(searchTerm.toLowerCase());
+                         lead.assigned_to.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -116,20 +116,20 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
               <TableRow key={lead.id} className="hover:bg-gray-50">
                 <TableCell className="font-medium">
                   <div>
-                    <div className="font-semibold">{lead.companyName}</div>
+                    <div className="font-semibold">{lead.company_name}</div>
                     <div className="text-sm text-gray-500">{lead.requirements.substring(0, 50)}...</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <div className="text-sm">{lead.email}</div>
-                    <div className="text-sm text-gray-500">{lead.contactNumber}</div>
+                    <div className="text-sm text-gray-500">{lead.contact_number}</div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{lead.leadSource}</Badge>
+                  <Badge variant="outline">{lead.lead_source}</Badge>
                 </TableCell>
-                <TableCell>{lead.assignedTo}</TableCell>
+                <TableCell>{lead.assigned_to}</TableCell>
                 <TableCell>
                   <Select value={lead.status} onValueChange={(value) => handleStatusChange(lead.id, value)}>
                     <SelectTrigger className="w-32">
@@ -160,9 +160,9 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className={`text-sm ${isOverdue(lead.nextFollowUp) ? 'text-red-600 font-semibold' : ''}`}>
-                    {formatDate(lead.nextFollowUp)}
-                    {isOverdue(lead.nextFollowUp) && lead.nextFollowUp && (
+                  <div className={`text-sm ${isOverdue(lead.next_follow_up) ? 'text-red-600 font-semibold' : ''}`}>
+                    {formatDate(lead.next_follow_up)}
+                    {isOverdue(lead.next_follow_up) && lead.next_follow_up && (
                       <div className="text-xs text-red-500">Overdue</div>
                     )}
                   </div>

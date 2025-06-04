@@ -29,7 +29,7 @@ const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
     address: '',
     contact_number: '',
     email: '',
-    status: 'new' as const,
+    status: 'new' as 'new' | 'contacted' | 'negotiation' | 'won' | 'lost',
   });
 
   useEffect(() => {
@@ -127,7 +127,7 @@ const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
               {/* Status */}
               <div>
                 <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: any) => setFormData({...formData, status: value})}>
+                <Select value={formData.status} onValueChange={(value: 'new' | 'contacted' | 'negotiation' | 'won' | 'lost') => setFormData({...formData, status: value})}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
