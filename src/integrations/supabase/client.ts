@@ -2,10 +2,22 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://kpnimyfplhalqidzustl.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwbmlteWZwbGhhbHFpZHp1c3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwMjgwMDEsImV4cCI6MjA2NDYwNDAwMX0.DyDpLoshIj4LR0RhfEX5_jY6wh0Tao5xGpPpoFZ1bJA";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing Supabase environment variables');
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Client for authenticated operations (using anon key)
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Client for database operations (using service role key)
+export const supabaseAdmin = createClient<Database>(
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
+);

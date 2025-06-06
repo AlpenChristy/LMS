@@ -1,13 +1,13 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, TrendingUp, Users, Calendar, Target } from "lucide-react";
+import { Plus, FileText, TrendingUp, Users, Calendar, Target, Upload } from "lucide-react";
 import { useLeads } from '@/hooks/useLeads';
 import LeadForm from "@/components/LeadForm";
 import LeadTable from "@/components/LeadTable";
 import Dashboard from "@/components/Dashboard";
+import ImportLeads from "@/components/ImportLeads";
 import { Lead } from "@/types/Lead";
 import { exportToCSV } from "@/utils/exportUtils";
 import { toast } from "@/hooks/use-toast";
@@ -15,17 +15,42 @@ import { toast } from "@/hooks/use-toast";
 const Index = () => {
   const { leads, isLoading, addLead, updateLead, deleteLead } = useLeads();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
-  const handleAddLead = (newLead: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>) => {
-    addLead(newLead);
-    setIsFormOpen(false);
+  const handleAddLead = async (newLead: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>) => {
+    try {
+      await addLead({
+        ...newLead,
+        updated_at: new Date().toISOString()
+      });
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Error adding lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add lead",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleUpdateLead = (updatedLead: Lead) => {
-    updateLead(updatedLead);
-    setEditingLead(null);
-    setIsFormOpen(false);
+  const handleUpdateLead = async (updatedLead: Lead) => {
+    try {
+      await updateLead({
+        ...updatedLead,
+        updated_at: new Date().toISOString()
+      });
+      setEditingLead(null);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Error updating lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update lead",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditLead = (lead: Lead) => {
@@ -33,8 +58,17 @@ const Index = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteLead = (leadId: string) => {
-    deleteLead(leadId);
+  const handleDeleteLead = async (leadId: string) => {
+    try {
+      await deleteLead(leadId);
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete lead",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleExport = () => {
@@ -43,6 +77,26 @@ const Index = () => {
       title: "Export Successful",
       description: "Leads data has been exported to CSV file.",
     });
+  };
+
+  const handleImportLeads = async (importedLeads: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>[]) => {
+    try {
+      for (const lead of importedLeads) {
+        await addLead(lead);
+      }
+      setIsImportOpen(false);
+      toast({
+        title: "Success",
+        description: `Successfully imported ${importedLeads.length} leads`,
+      });
+    } catch (error) {
+      console.error('Error importing leads:', error);
+      toast({
+        title: "Error",
+        description: "Failed to import leads",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -69,8 +123,16 @@ const Index = () => {
             </Button>
             <Button 
               variant="outline" 
+              onClick={() => setIsImportOpen(true)}
+              className="bg-white text-purple-600 hover:bg-gray-100 hover:text-purple-600 flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Import Leads
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={handleExport} 
-              className="border-white text-white hover:bg-white hover:text-purple-600 flex items-center gap-2"
+              className="bg-white text-purple-600 hover:bg-gray-100 hover:text-purple-600 flex items-center gap-2"
             >
               <FileText className="h-4 w-4" />
               Export
@@ -99,10 +161,30 @@ const Index = () => {
           <TabsContent value="leads">
             <Card className="shadow-lg border-0">
               <CardHeader className="bg-white border-b">
-                <CardTitle className="flex items-center gap-2 text-gray-800">
-                  <Users className="h-5 w-5" />
-                  All Leads ({leads.length})
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-gray-800">
+                    <Users className="h-5 w-5" />
+                    All Leads ({leads.length})
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExport}
+                      className="flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Export
+                    </Button>
+                    <Button
+                      onClick={() => setIsFormOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Lead
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 {isLoading ? (
@@ -133,6 +215,16 @@ const Index = () => {
               setEditingLead(null);
             }}
           />
+        )}
+
+        {/* Import Leads Modal */}
+        {isImportOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <ImportLeads
+              onImport={handleImportLeads}
+              onClose={() => setIsImportOpen(false)}
+            />
+          </div>
         )}
       </div>
     </div>

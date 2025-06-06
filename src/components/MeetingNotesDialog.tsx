@@ -1,12 +1,11 @@
-
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Calendar } from "lucide-react";
-import { Lead } from "@/types/Lead";
-import { useLeads } from '@/hooks/useLeads';
+import { X, Plus, Calendar, Edit2, Trash2 } from "lucide-react";
+import { Lead, MeetingSummary } from "@/types/Lead";
+import { useMeetingSummaries } from '@/hooks/useMeetingSummaries';
 
 interface MeetingNotesDialogProps {
   lead: Lead;
@@ -16,7 +15,9 @@ interface MeetingNotesDialogProps {
 
 const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps) => {
   const [newSummary, setNewSummary] = useState('');
-  const { addMeetingSummary } = useLeads();
+  const [editingSummary, setEditingSummary] = useState<MeetingSummary | null>(null);
+  const [editText, setEditText] = useState('');
+  const { addMeetingSummary, updateMeetingSummary, deleteMeetingSummary } = useMeetingSummaries();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -40,17 +41,63 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
     }
   };
 
-  const handleAddSummary = () => {
+  const handleAddSummary = async () => {
     if (!newSummary.trim()) return;
 
-    addMeetingSummary({ leadId: lead.id, summary: newSummary });
-    setNewSummary('');
-    onClose();
+    const summary = await addMeetingSummary(lead.id, newSummary);
+    if (summary) {
+      const updatedLead = {
+        ...lead,
+        meeting_summaries: [...(lead.meeting_summaries || []), summary]
+      };
+      onUpdate(updatedLead);
+      setNewSummary('');
+    }
   };
 
-  const formatDateTime = (dateString: string) => {
+  const handleEditSummary = async (summary: MeetingSummary) => {
+    if (!editText.trim()) return;
+
+    await updateMeetingSummary(summary.id, editText);
+    const updatedLead = {
+      ...lead,
+      meeting_summaries: lead.meeting_summaries?.map(s => 
+        s.id === summary.id ? { ...s, summary: editText } : s
+      ) || []
+    };
+    onUpdate(updatedLead);
+    setEditingSummary(null);
+    setEditText('');
+  };
+
+  const handleDeleteSummary = async (summaryId: string) => {
+    await deleteMeetingSummary(summaryId);
+    const updatedLead = {
+      ...lead,
+      meeting_summaries: lead.meeting_summaries?.filter(s => s.id !== summaryId) || []
+    };
+    onUpdate(updatedLead);
+  };
+
+  const startEditing = (summary: MeetingSummary) => {
+    setEditingSummary(summary);
+    setEditText(summary.summary);
+  };
+
+  const formatDateTime = (dateString: string | null) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleString();
   };
+
+  // Sort meeting summaries by date in descending order
+  const sortedSummaries = useMemo(() => {
+    if (!lead.meeting_summaries) return [];
+    return [...lead.meeting_summaries].sort((b, a) => {
+      const dateA = a.meeting_date ? new Date(a.meeting_date).getTime() : 0;
+      const dateB = b.meeting_date ? new Date(b.meeting_date).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [lead.meeting_summaries]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -121,16 +168,63 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
               Meeting History ({lead.meeting_summaries?.length || 0})
             </h3>
             
-            {lead.meeting_summaries && lead.meeting_summaries.length > 0 ? (
+            {sortedSummaries.length > 0 ? (
               <div className="space-y-4">
-                {lead.meeting_summaries.map((summary) => (
+                {sortedSummaries.map((summary) => (
                   <div key={summary.id} className="border rounded-lg p-4 bg-white">
                     <div className="flex justify-between items-start mb-2">
                       <div className="text-sm text-gray-500">
                         {formatDateTime(summary.meeting_date)}
                       </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => startEditing(summary)}
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSummary(summary.id)}
+                          title="Delete"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-sm leading-relaxed">{summary.summary}</p>
+                    {editingSummary?.id === summary.id ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          rows={4}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingSummary(null);
+                              setEditText('');
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleEditSummary(summary)}
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed">{summary.summary}</p>
+                    )}
                   </div>
                 ))}
               </div>

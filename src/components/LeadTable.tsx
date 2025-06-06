@@ -1,12 +1,11 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Trash2, Calendar } from "lucide-react";
-import { Lead } from "@/types/Lead";
+import { Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Lead, LeadStatus, ProposalStatus } from "@/types/Lead";
 import MeetingNotesDialog from "./MeetingNotesDialog";
 
 interface LeadTableProps {
@@ -18,8 +17,10 @@ interface LeadTableProps {
 
 const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const leadsPerPage = 30;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -28,6 +29,7 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
       case 'negotiation': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'won': return 'bg-green-100 text-green-800 border-green-200';
       case 'lost': return 'bg-red-100 text-red-800 border-red-200';
+      case 'payment_pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -39,6 +41,27 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
       case 'negotiation': return 'In Negotiation';
       case 'won': return 'Closed Won';
       case 'lost': return 'Closed Lost';
+      case 'payment_pending': return 'Payment Pending';
+      default: return status;
+    }
+  };
+
+  const getProposalStatusColor = (status: ProposalStatus) => {
+    switch (status) {
+      case 'not_given': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'given': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getProposalStatusLabel = (status: ProposalStatus) => {
+    switch (status) {
+      case 'not_given': return 'Not Given';
+      case 'given': return 'Given';
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
       default: return status;
     }
   };
@@ -51,10 +74,28 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (leadId: string, newStatus: string) => {
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
+  const startIndex = (currentPage - 1) * leadsPerPage;
+  const endIndex = startIndex + leadsPerPage;
+  const currentLeads = filteredLeads.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  const handleStatusChange = (leadId: string, newStatus: LeadStatus) => {
     const lead = leads.find(l => l.id === leadId);
     if (lead) {
-      onUpdate({ ...lead, status: newStatus as any });
+      onUpdate({ ...lead, status: newStatus });
+    }
+  };
+
+  const handleProposalStatusChange = (leadId: string, newStatus: ProposalStatus) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (lead) {
+      onUpdate({ ...lead, proposal_status: newStatus });
     }
   };
 
@@ -80,7 +121,7 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
           />
         </div>
         <div className="w-full sm:w-48">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as LeadStatus | 'all')}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -89,6 +130,7 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
               <SelectItem value="new">New</SelectItem>
               <SelectItem value="contacted">Contacted</SelectItem>
               <SelectItem value="negotiation">In Negotiation</SelectItem>
+              <SelectItem value="payment_pending">Payment Pending</SelectItem>
               <SelectItem value="won">Closed Won</SelectItem>
               <SelectItem value="lost">Closed Lost</SelectItem>
             </SelectContent>
@@ -106,13 +148,14 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
               <TableHead>Source</TableHead>
               <TableHead>Assigned To</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Proposal</TableHead>
               <TableHead>Potential</TableHead>
               <TableHead>Next Follow-up</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredLeads.map((lead) => (
+            {currentLeads.map((lead) => (
               <TableRow key={lead.id} className="hover:bg-gray-50">
                 <TableCell className="font-medium">
                   <div>
@@ -131,7 +174,7 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
                 </TableCell>
                 <TableCell>{lead.assigned_to}</TableCell>
                 <TableCell>
-                  <Select value={lead.status} onValueChange={(value) => handleStatusChange(lead.id, value)}>
+                  <Select value={lead.status} onValueChange={(value) => handleStatusChange(lead.id, value as LeadStatus)}>
                     <SelectTrigger className="w-32">
                       <SelectValue>
                         <Badge className={getStatusColor(lead.status)}>
@@ -143,8 +186,26 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
                       <SelectItem value="new">New</SelectItem>
                       <SelectItem value="contacted">Contacted</SelectItem>
                       <SelectItem value="negotiation">In Negotiation</SelectItem>
+                      <SelectItem value="payment_pending">Payment Pending</SelectItem>
                       <SelectItem value="won">Closed Won</SelectItem>
                       <SelectItem value="lost">Closed Lost</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select value={lead.proposal_status} onValueChange={(value) => handleProposalStatusChange(lead.id, value as ProposalStatus)}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue>
+                        <Badge className={getProposalStatusColor(lead.proposal_status)}>
+                          {getProposalStatusLabel(lead.proposal_status)}
+                        </Badge>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="not_given">Not Given</SelectItem>
+                      <SelectItem value="given">Given</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
@@ -200,6 +261,36 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
             ))}
           </TableBody>
         </Table>
+
+        {/* Pagination */}
+        {filteredLeads.length > 0 && (
+          <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-gray-500">
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredLeads.length)} of {filteredLeads.length} leads
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {filteredLeads.length === 0 && (
           <div className="text-center py-8 text-gray-500">

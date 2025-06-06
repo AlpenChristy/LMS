@@ -1,15 +1,39 @@
-
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, DollarSign, CheckCircle, Clock, Users, Target, Calendar, Award } from "lucide-react";
+import { TrendingUp, DollarSign, CheckCircle, Clock, Users, Target, Calendar, Award, Filter, Bell, AlertCircle, X } from "lucide-react";
 import { Lead } from "@/types/Lead";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface DashboardProps {
   leads: Lead[];
   isLoading: boolean;
 }
 
-const Dashboard = ({ leads, isLoading }: DashboardProps) => {
+function Dashboard({ leads, isLoading }: DashboardProps) {
+  const [dateFilter, setDateFilter] = useState('all');
+  const [potentialFilter, setPotentialFilter] = useState('all');
+  const [showFollowUpReminder, setShowFollowUpReminder] = useState(false);
+
+  // Calculate follow-ups due today
+  const today = new Date().toISOString().split('T')[0];
+  const followUpsDueToday = leads.filter(lead => {
+    const nextFollowUp = lead.next_follow_up?.split('T')[0];
+    return nextFollowUp === today;
+  });
+
+  // Show follow-up reminder only once when website is opened
+  useEffect(() => {
+    const hasShownReminder = localStorage.getItem('hasShownFollowUpReminder');
+    if (!hasShownReminder && followUpsDueToday.length > 0) {
+      setShowFollowUpReminder(true);
+      localStorage.setItem('hasShownFollowUpReminder', 'true');
+    }
+  }, [followUpsDueToday.length]);
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -19,6 +43,50 @@ const Dashboard = ({ leads, isLoading }: DashboardProps) => {
     );
   }
 
+  const getFilteredLeads = () => {
+    let filteredLeads = [...leads];
+
+    // Apply date filter
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+      const ninetyDaysAgo = new Date(now.setDate(now.getDate() - 60));
+
+      filteredLeads = filteredLeads.filter(lead => {
+        const createdDate = new Date(lead.created_at || '');
+        switch (dateFilter) {
+          case '30days':
+            return createdDate >= thirtyDaysAgo;
+          case '90days':
+            return createdDate >= ninetyDaysAgo;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply potential filter
+    if (potentialFilter !== 'all') {
+      filteredLeads = filteredLeads.filter(lead => {
+        const potential = lead.potential || 0;
+        switch (potentialFilter) {
+          case 'high':
+            return potential >= 75;
+          case 'medium':
+            return potential >= 50 && potential < 75;
+          case 'low':
+            return potential < 50;
+          default:
+            return true;
+        }
+      });
+    }
+
+    return filteredLeads;
+  };
+
+  const filteredLeads = getFilteredLeads();
+
   const getStatusCounts = () => {
     const counts = {
       new: 0,
@@ -26,9 +94,10 @@ const Dashboard = ({ leads, isLoading }: DashboardProps) => {
       negotiation: 0,
       won: 0,
       lost: 0,
+      payment_pending: 0,
     };
     
-    leads.forEach(lead => {
+    filteredLeads.forEach(lead => {
       counts[lead.status]++;
     });
     
@@ -36,8 +105,8 @@ const Dashboard = ({ leads, isLoading }: DashboardProps) => {
   };
 
   const statusCounts = getStatusCounts();
-  const totalLeads = leads.length;
-  const potentialRevenue = leads.reduce((sum, lead) => {
+  const totalLeads = filteredLeads.length;
+  const potentialRevenue = filteredLeads.reduce((sum, lead) => {
     if (lead.status === 'won') return sum + 15000; // Assuming average deal value
     if (lead.status === 'negotiation') return sum + (15000 * lead.potential / 100);
     return sum;
@@ -50,17 +119,143 @@ const Dashboard = ({ leads, isLoading }: DashboardProps) => {
     { name: 'New', value: statusCounts.new, color: '#F59E0B' },
   ];
 
-  const monthlyData = [
-    { month: 'Jan', converted: 12, lost: 8 },
-    { month: 'Feb', converted: 15, lost: 6 },
-    { month: 'Mar', converted: 18, lost: 9 },
-    { month: 'Apr', converted: 22, lost: 7 },
-    { month: 'May', converted: 25, lost: 5 },
-    { month: 'Jun', converted: 28, lost: 8 },
-  ];
+  // Calculate monthly conversion data
+  const getMonthlyData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentDate = new Date();
+    const monthlyData = [];
+
+    // Get data for the last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0);
+      
+      const monthLeads = filteredLeads.filter(lead => {
+        const leadDate = new Date(lead.created_at || '');
+        return leadDate >= monthDate && leadDate <= monthEnd;
+      });
+
+      const converted = monthLeads.filter(lead => lead.status === 'won').length;
+      const lost = monthLeads.filter(lead => lead.status === 'lost').length;
+
+      monthlyData.push({
+        month: months[monthDate.getMonth()],
+        converted,
+        lost
+      });
+    }
+
+    return monthlyData;
+  };
+
+  const monthlyData = getMonthlyData();
+
+  const getProposalStatusCounts = () => {
+    const counts = {
+      not_given: 0,
+      given: 0,
+      approved: 0,
+      rejected: 0,
+    };
+    
+    filteredLeads.forEach(lead => {
+      counts[lead.proposal_status]++;
+    });
+    
+    return counts;
+  };
+
+  const proposalStatusCounts = getProposalStatusCounts();
 
   return (
     <div className="space-y-6">
+      {/* Follow-up Reminder Banner */}
+      {showFollowUpReminder && followUpsDueToday.length > 0 && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-yellow-400" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Follow-up Reminder
+                </h3>
+                <p className="text-sm text-yellow-700">
+                  You have {followUpsDueToday.length} follow-up{followUpsDueToday.length > 1 ? 's' : ''} due today
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFollowUpReminder(false)}
+              className="text-yellow-700 hover:text-yellow-800"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Today's Follow-ups Section */}
+      {leads.some(lead => lead.next_follow_up && lead.next_follow_up.split('T')[0] === new Date().toISOString().split('T')[0]) && (
+        <Card className="shadow-lg border-0">
+          <div className="p-6 border-b bg-white">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Today's Follow-ups
+            </h3>
+          </div>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {leads
+                .filter(lead => lead.next_follow_up && lead.next_follow_up.split('T')[0] === new Date().toISOString().split('T')[0])
+                .sort((a, b) => {
+                  const timeA = a.next_follow_up ? new Date(a.next_follow_up).getTime() : 0;
+                  const timeB = b.next_follow_up ? new Date(b.next_follow_up).getTime() : 0;
+                  return timeA - timeB;
+                })
+                .map(lead => {
+                  const statusColor = {
+                    new: 'bg-blue-100 text-blue-800',
+                    contacted: 'bg-yellow-100 text-yellow-800',
+                    negotiation: 'bg-purple-100 text-purple-800',
+                    won: 'bg-green-100 text-green-800',
+                    lost: 'bg-red-100 text-red-800'
+                  }[lead.status];
+
+                  return (
+                    <div key={lead.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{lead.company_name}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
+                              {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              Potential: {lead.potential || 0}%
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm text-gray-600">
+                            Requirements: {lead.requirements || 'No requirements specified'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-gray-900">Contact</div>
+                          <div className="text-sm text-gray-500">{lead.contact_number}</div>
+                          <div className="text-sm text-gray-500">{lead.email}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg">
@@ -79,10 +274,10 @@ const Dashboard = ({ leads, isLoading }: DashboardProps) => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold">₹ {Math.round(potentialRevenue).toLocaleString()}</div>
-                <div className="text-orange-100">Potential Collection</div>
+                <div className="text-3xl font-bold">{statusCounts.new}</div>
+                <div className="text-orange-100">New Leads</div>
               </div>
-              <DollarSign className="h-12 w-12 text-orange-200" />
+              <Award className="h-12 w-12 text-orange-200" />
             </div>
           </CardContent>
         </Card>
@@ -185,58 +380,155 @@ const Dashboard = ({ leads, isLoading }: DashboardProps) => {
       {/* Processing Summary Table */}
       <Card className="shadow-lg border-0">
         <div className="p-6 border-b bg-white">
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Processing Summary
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Lead Processing Summary
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Date Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="30days">Last 30 Days</SelectItem>
+                    <SelectItem value="90days">Last 90 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <Select value={potentialFilter} onValueChange={setPotentialFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Potential" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Potential</SelectItem>
+                    <SelectItem value="high">High (75%+)</SelectItem>
+                    <SelectItem value="medium">Medium (50-74%)</SelectItem>
+                    <SelectItem value="low">Low (&lt;50%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </div>
         <CardContent className="p-6">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 text-gray-600">Process</th>
-                  <th className="text-center py-3 text-gray-600">2 Months Back</th>
-                  <th className="text-center py-3 text-gray-600">Last Month</th>
-                  <th className="text-center py-3 text-gray-600">Current Month</th>
-                  <th className="text-center py-3 text-gray-600">Next Month</th>
+                  <th className="text-left py-3 text-gray-600">Status</th>
+                  <th className="text-center py-3 text-gray-600">Count</th>
+                  <th className="text-center py-3 text-gray-600">Avg. Potential</th>
+                  <th className="text-center py-3 text-gray-600">Last Follow-up</th>
+                  <th className="text-center py-3 text-gray-600">Next Follow-up</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b hover:bg-gray-50">
-                  <td className="py-3 font-medium">Interested Open</td>
-                  <td className="text-center py-3">2</td>
-                  <td className="text-center py-3">12</td>
+                  <td className="py-3 font-medium">New Leads</td>
                   <td className="text-center py-3">{statusCounts.new}</td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'new').reduce((acc, lead) => acc + (lead.potential || 0), 0) / (statusCounts.new || 1)}%
+                  </td>
+                  <td className="text-center py-3">-</td>
                   <td className="text-center py-3">-</td>
                 </tr>
                 <tr className="border-b hover:bg-gray-50">
-                  <td className="py-3 font-medium">Payment Collection</td>
-                  <td className="text-center py-3">0</td>
-                  <td className="text-center py-3">0</td>
+                  <td className="py-3 font-medium">Contacted</td>
                   <td className="text-center py-3">{statusCounts.contacted}</td>
-                  <td className="text-center py-3">-</td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'contacted').reduce((acc, lead) => acc + (lead.potential || 0), 0) / (statusCounts.contacted || 1)}%
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'contacted' && l.last_follow_up)
+                      .sort((a, b) => new Date(b.last_follow_up!).getTime() - new Date(a.last_follow_up!).getTime())[0]?.last_follow_up?.split('T')[0] || '-'}
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'contacted' && l.next_follow_up)
+                      .sort((a, b) => new Date(a.next_follow_up!).getTime() - new Date(b.next_follow_up!).getTime())[0]?.next_follow_up?.split('T')[0] || '-'}
+                  </td>
                 </tr>
                 <tr className="border-b hover:bg-gray-50">
-                  <td className="py-3 font-medium">Payment Collected</td>
-                  <td className="text-center py-3">0</td>
-                  <td className="text-center py-3">0</td>
-                  <td className="text-center py-3">{statusCounts.won}</td>
-                  <td className="text-center py-3">-</td>
-                </tr>
-                <tr className="border-b hover:bg-gray-50">
-                  <td className="py-3 font-medium">Policy Generated</td>
-                  <td className="text-center py-3">0</td>
-                  <td className="text-center py-3">0</td>
+                  <td className="py-3 font-medium">In Negotiation</td>
                   <td className="text-center py-3">{statusCounts.negotiation}</td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'negotiation').reduce((acc, lead) => acc + (lead.potential || 0), 0) / (statusCounts.negotiation || 1)}%
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'negotiation' && l.last_follow_up)
+                      .sort((a, b) => new Date(b.last_follow_up!).getTime() - new Date(a.last_follow_up!).getTime())[0]?.last_follow_up?.split('T')[0] || '-'}
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'negotiation' && l.next_follow_up)
+                      .sort((a, b) => new Date(a.next_follow_up!).getTime() - new Date(b.next_follow_up!).getTime())[0]?.next_follow_up?.split('T')[0] || '-'}
+                  </td>
+                </tr>
+                <tr className="border-b hover:bg-gray-50">
+                  <td className="py-3 font-medium">Won</td>
+                  <td className="text-center py-3">{statusCounts.won}</td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'won').reduce((acc, lead) => acc + (lead.potential || 0), 0) / (statusCounts.won || 1)}%
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'won' && l.last_follow_up)
+                      .sort((a, b) => new Date(b.last_follow_up!).getTime() - new Date(a.last_follow_up!).getTime())[0]?.last_follow_up?.split('T')[0] || '-'}
+                  </td>
                   <td className="text-center py-3">-</td>
                 </tr>
-                <tr className="hover:bg-gray-50">
+                <tr className="border-b hover:bg-gray-50">
                   <td className="py-3 font-medium">Lost</td>
-                  <td className="text-center py-3">18</td>
-                  <td className="text-center py-3">12</td>
                   <td className="text-center py-3">{statusCounts.lost}</td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'lost').reduce((acc, lead) => acc + (lead.potential || 0), 0) / (statusCounts.lost || 1)}%
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'lost' && l.last_follow_up)
+                      .sort((a, b) => new Date(b.last_follow_up!).getTime() - new Date(a.last_follow_up!).getTime())[0]?.last_follow_up?.split('T')[0] || '-'}
+                  </td>
                   <td className="text-center py-3">-</td>
+                </tr>
+                <tr className="border-b hover:bg-gray-50">
+                  <td className="py-3 font-medium">Payment Pending</td>
+                  <td className="text-center py-3">{statusCounts.payment_pending}</td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'payment_pending').reduce((acc, lead) => acc + (lead.potential || 0), 0) / (statusCounts.payment_pending || 1)}%
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'payment_pending' && l.last_follow_up)
+                      .sort((a, b) => new Date(b.last_follow_up!).getTime() - new Date(a.last_follow_up!).getTime())[0]?.last_follow_up?.split('T')[0] || '-'}
+                  </td>
+                  <td className="text-center py-3">
+                    {filteredLeads.filter(l => l.status === 'payment_pending' && l.next_follow_up)
+                      .sort((a, b) => new Date(a.next_follow_up!).getTime() - new Date(b.next_follow_up!).getTime())[0]?.next_follow_up?.split('T')[0] || '-'}
+                  </td>
+                </tr>
+                <tr className="border-b hover:bg-gray-50">
+                  <td className="py-3 font-medium">Proposal Status</td>
+                  <td className="text-center py-3" colSpan={4}>
+                    <div className="flex justify-center gap-4">
+                      <div className="text-center">
+                        <div className="text-lg font-semibold">{proposalStatusCounts.not_given}</div>
+                        <div className="text-sm text-gray-500">Not Given</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-semibold">{proposalStatusCounts.given}</div>
+                        <div className="text-sm text-gray-500">Given</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-semibold">{proposalStatusCounts.approved}</div>
+                        <div className="text-sm text-gray-500">Approved</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-semibold">{proposalStatusCounts.rejected}</div>
+                        <div className="text-sm text-gray-500">Rejected</div>
+                      </div>
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -245,6 +537,6 @@ const Dashboard = ({ leads, isLoading }: DashboardProps) => {
       </Card>
     </div>
   );
-};
+}
 
 export default Dashboard;
