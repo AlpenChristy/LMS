@@ -6,12 +6,22 @@ import { toast } from '@/hooks/use-toast';
 // Default user ID for all operations
 const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000000';
 
+// Function to generate UUID v4
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 export const useMeetingSummaries = () => {
   const addMeetingSummary = async (leadId: string, summary: string) => {
     try {
       const { data, error } = await supabaseAdmin
         .from('meeting_summaries')
         .insert([{
+          id: generateUUID(),
           lead_id: leadId,
           summary,
           meeting_date: new Date().toISOString(),

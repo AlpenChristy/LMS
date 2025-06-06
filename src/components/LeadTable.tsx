@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Edit, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Lead, LeadStatus, ProposalStatus } from "@/types/Lead";
 import MeetingNotesDialog from "./MeetingNotesDialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface LeadTableProps {
   leads: Lead[];
@@ -20,6 +21,7 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const leadsPerPage = 30;
 
   const getStatusColor = (status: string) => {
@@ -160,19 +162,21 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
                 <TableCell className="font-medium">
                   <div>
                     <div className="font-semibold">{lead.company_name}</div>
-                    <div className="text-sm text-gray-500">{lead.requirements.substring(0, 50)}...</div>
+                    <div className="text-sm text-gray-500">
+                      {lead.requirements ? `${lead.requirements.substring(0, 50)}...` : ''}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="text-sm">{lead.email}</div>
-                    <div className="text-sm text-gray-500">{lead.contact_number}</div>
+                    <div className="text-sm">{lead.email || ''}</div>
+                    <div className="text-sm text-gray-500">{lead.contact_number || 'No contact number'}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{lead.lead_source}</Badge>
                 </TableCell>
-                <TableCell>{lead.assigned_to}</TableCell>
+                <TableCell>{lead.assigned_to || 'Unassigned'}</TableCell>
                 <TableCell>
                   <Select value={lead.status} onValueChange={(value) => handleStatusChange(lead.id, value as LeadStatus)}>
                     <SelectTrigger className="w-32">
@@ -249,7 +253,7 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onDelete(lead.id)}
+                      onClick={() => setLeadToDelete(lead)}
                       title="Delete Lead"
                       className="text-red-600 hover:text-red-700"
                     >
@@ -307,6 +311,37 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
           onUpdate={onUpdate}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!leadToDelete} onOpenChange={() => setLeadToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Lead</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the lead for {leadToDelete?.company_name}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setLeadToDelete(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (leadToDelete) {
+                  onDelete(leadToDelete.id);
+                  setLeadToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

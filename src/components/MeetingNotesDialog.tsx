@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Calendar, Edit2, Trash2 } from "lucide-react";
 import { Lead, MeetingSummary } from "@/types/Lead";
 import { useMeetingSummaries } from '@/hooks/useMeetingSummaries';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface MeetingNotesDialogProps {
   lead: Lead;
@@ -100,26 +100,24 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
   }, [lead.meeting_summaries]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Meeting Notes - {lead.company_name}
-            </CardTitle>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Meeting Notes - {lead.company_name}
+          </DialogTitle>
+          <DialogDescription>
             <div className="flex items-center gap-2 mt-2">
               <Badge className={getStatusColor(lead.status)}>
                 {getStatusLabel(lead.status)}
               </Badge>
               <span className="text-sm text-gray-500">Assigned to: {lead.assigned_to}</span>
             </div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-6">
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
           {/* Lead Summary */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-semibold text-sm text-gray-700 mb-2">Lead Summary</h3>
@@ -236,9 +234,9 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
