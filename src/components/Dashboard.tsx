@@ -380,16 +380,16 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
       {/* Processing Summary Table */}
       <Card className="shadow-lg border-0">
         <div className="p-6 border-b bg-white">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Lead Processing Summary
             </h3>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-gray-500" />
                 <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Date Range" />
                   </SelectTrigger>
                   <SelectContent>
@@ -399,10 +399,10 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-gray-500" />
                 <Select value={potentialFilter} onValueChange={setPotentialFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Potential" />
                   </SelectTrigger>
                   <SelectContent>
@@ -510,7 +510,7 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
                 <tr className="border-b hover:bg-gray-50">
                   <td className="py-3 font-medium">Proposal Status</td>
                   <td className="text-center py-3" colSpan={4}>
-                    <div className="flex justify-center gap-4">
+                    <div className="flex flex-wrap justify-center gap-4">
                       <div className="text-center">
                         <div className="text-lg font-semibold">{proposalStatusCounts.not_given}</div>
                         <div className="text-sm text-gray-500">Not Given</div>
