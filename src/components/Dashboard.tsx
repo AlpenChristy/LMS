@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, DollarSign, CheckCircle, Clock, Users, Target, Calendar, Award, Filter, Bell, AlertCircle, X } from "lucide-react";
-import { Lead } from "@/types/Lead";
+import { Lead, LeadStatus } from "@/types/Lead";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
-import { LeadStatus } from "@/types/lead";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -24,7 +23,7 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
   const [dateFilter, setDateFilter] = useState('all');
   const [potentialFilter, setPotentialFilter] = useState('all');
   const [showFollowUpReminder, setShowFollowUpReminder] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<LeadStatus | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<LeadStatus | 'followup-done' | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -177,16 +176,19 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
 
   const proposalStatusCounts = getProposalStatusCounts();
 
-  const handleStatusCardClick = (status: LeadStatus) => {
+  const handleStatusCardClick = (status: LeadStatus | 'followup-done') => {
     setSelectedStatus(status);
     setIsDialogOpen(true);
   };
 
-  const getStatusLeads = (status: LeadStatus) => {
+  const getStatusLeads = (status: LeadStatus | 'followup-done') => {
+    if (status === 'followup-done') {
+      return filteredLeads.filter(lead => lead.status === 'contacted' || lead.status === 'negotiation');
+    }
     return filteredLeads.filter(lead => lead.status === status);
   };
 
-  const getStatusTitle = (status: LeadStatus) => {
+  const getStatusTitle = (status: LeadStatus | 'followup-done') => {
     switch (status) {
       case 'new':
         return 'New Leads';
@@ -198,6 +200,8 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
         return 'Won Leads';
       case 'lost':
         return 'Lost Leads';
+      case 'followup-done':
+        return 'Follow-up Done Leads';
       default:
         return 'Leads';
     }
@@ -266,7 +270,7 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
 
         <Card 
           className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => handleStatusCardClick('contacted')}
+          onClick={() => handleStatusCardClick('followup-done')}
         >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -313,7 +317,6 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                     <div>
-                      <p><span className="font-medium">Contact:</span> {lead.contact_name}</p>
                       <p><span className="font-medium">Phone:</span> {lead.contact_number}</p>
                       <p><span className="font-medium">Email:</span> {lead.email}</p>
                     </div>
