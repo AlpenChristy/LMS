@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, DollarSign, CheckCircle, Clock, Users, Target, Calendar, Award, Filter, Bell, AlertCircle, X } from "lucide-react";
 import { Lead } from "@/types/Lead";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -7,6 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { format } from "date-fns";
+import { LeadStatus } from "@/types/lead";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DashboardProps {
   leads: Lead[];
@@ -17,6 +24,9 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
   const [dateFilter, setDateFilter] = useState('all');
   const [potentialFilter, setPotentialFilter] = useState('all');
   const [showFollowUpReminder, setShowFollowUpReminder] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<LeadStatus | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   // Calculate follow-ups due today
   const today = new Date().toISOString().split('T')[0];
@@ -167,6 +177,32 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
 
   const proposalStatusCounts = getProposalStatusCounts();
 
+  const handleStatusCardClick = (status: LeadStatus) => {
+    setSelectedStatus(status);
+    setIsDialogOpen(true);
+  };
+
+  const getStatusLeads = (status: LeadStatus) => {
+    return filteredLeads.filter(lead => lead.status === status);
+  };
+
+  const getStatusTitle = (status: LeadStatus) => {
+    switch (status) {
+      case 'new':
+        return 'New Leads';
+      case 'contacted':
+        return 'Contacted Leads';
+      case 'negotiation':
+        return 'Leads in Negotiation';
+      case 'won':
+        return 'Won Leads';
+      case 'lost':
+        return 'Lost Leads';
+      default:
+        return 'Leads';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Follow-up Reminder Banner */}
@@ -196,69 +232,12 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
         </div>
       )}
 
-      {/* Today's Follow-ups Section */}
-      {leads.some(lead => lead.next_follow_up && lead.next_follow_up.split('T')[0] === new Date().toISOString().split('T')[0]) && (
-        <Card className="shadow-lg border-0">
-          <div className="p-6 border-b bg-white">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Today's Follow-ups
-            </h3>
-          </div>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {leads
-                .filter(lead => lead.next_follow_up && lead.next_follow_up.split('T')[0] === new Date().toISOString().split('T')[0])
-                .sort((a, b) => {
-                  const timeA = a.next_follow_up ? new Date(a.next_follow_up).getTime() : 0;
-                  const timeB = b.next_follow_up ? new Date(b.next_follow_up).getTime() : 0;
-                  return timeA - timeB;
-                })
-                .map(lead => {
-                  const statusColor = {
-                    new: 'bg-blue-100 text-blue-800',
-                    contacted: 'bg-yellow-100 text-yellow-800',
-                    negotiation: 'bg-purple-100 text-purple-800',
-                    won: 'bg-green-100 text-green-800',
-                    lost: 'bg-red-100 text-red-800'
-                  }[lead.status];
-
-                  return (
-                    <div key={lead.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{lead.company_name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
-                              {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-                            </span>
-                            <span className="text-sm text-gray-500">
-                              Potential: {lead.potential || 0}%
-                            </span>
-                          </div>
-                          <div className="mt-2 text-sm text-gray-600">
-                            Requirements: {lead.requirements || 'No requirements specified'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900">Contact</div>
-                          <div className="text-sm text-gray-500">{lead.contact_number}</div>
-                          <div className="text-sm text-gray-500">{lead.email}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+        <Card 
+          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => handleStatusCardClick('new')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -270,7 +249,10 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+        <Card 
+          className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => handleStatusCardClick('new')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -282,7 +264,10 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg">
+        <Card 
+          className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => handleStatusCardClick('contacted')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -294,7 +279,10 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-lg">
+        <Card 
+          className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => handleStatusCardClick('new')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -302,6 +290,192 @@ function Dashboard({ leads, isLoading }: DashboardProps) {
                 <div className="text-red-100">Follow-up Pending</div>
               </div>
               <Clock className="h-12 w-12 text-red-200" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Status Leads Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{selectedStatus ? getStatusTitle(selectedStatus) : 'Leads'}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-4">
+            <div className="space-y-4">
+              {selectedStatus && getStatusLeads(selectedStatus).map(lead => (
+                <div key={lead.id} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold">{lead.company_name}</h3>
+                    <Badge variant="outline" className="capitalize">
+                      {lead.status}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                      <p><span className="font-medium">Contact:</span> {lead.contact_name}</p>
+                      <p><span className="font-medium">Phone:</span> {lead.contact_number}</p>
+                      <p><span className="font-medium">Email:</span> {lead.email}</p>
+                    </div>
+                    <div>
+                      <p><span className="font-medium">Potential:</span> {lead.potential || 0}%</p>
+                      <p><span className="font-medium">Next Follow-up:</span> {lead.next_follow_up ? format(new Date(lead.next_follow_up), 'MMM d, yyyy h:mm a') : 'Not set'}</p>
+                      {lead.meeting_date && (
+                        <p><span className="font-medium">Meeting:</span> {lead.meeting_date} at {lead.meeting_time}</p>
+                      )}
+                    </div>
+                  </div>
+                  {lead.requirements && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      <p className="font-medium">Requirements:</p>
+                      <p>{lead.requirements}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Follow-ups and Meetings Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Today's Follow-ups Section */}
+        <Card className="shadow-lg border-0 h-[400px] flex flex-col">
+          <div className="p-4 border-b bg-white flex-shrink-0">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Today's Follow-ups
+            </h3>
+          </div>
+          <CardContent className="p-4 flex-1 overflow-y-auto">
+            <div className="space-y-3">
+              {leads.some(lead => lead.next_follow_up && lead.next_follow_up.split('T')[0] === new Date().toISOString().split('T')[0]) ? (
+                leads
+                  .filter(lead => lead.next_follow_up && lead.next_follow_up.split('T')[0] === new Date().toISOString().split('T')[0])
+                  .sort((a, b) => {
+                    const timeA = a.next_follow_up ? new Date(a.next_follow_up).getTime() : 0;
+                    const timeB = b.next_follow_up ? new Date(b.next_follow_up).getTime() : 0;
+                    return timeA - timeB;
+                  })
+                  .map(lead => {
+                    const statusColor = {
+                      new: 'bg-blue-100 text-blue-800',
+                      contacted: 'bg-yellow-100 text-yellow-800',
+                      negotiation: 'bg-purple-100 text-purple-800',
+                      won: 'bg-green-100 text-green-800',
+                      lost: 'bg-red-100 text-red-800'
+                    }[lead.status];
+
+                    return (
+                      <div key={lead.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <h4 className="font-medium text-gray-900">{lead.company_name}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+                                {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                Potential: {lead.potential || 0}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500">{lead.contact_number}</div>
+                          <div className="text-sm text-gray-500">{lead.email}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <Clock className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p>No follow-ups due today</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Meetings Section */}
+        <Card className="shadow-lg border-0 h-[400px] flex flex-col">
+          <div className="p-4 border-b bg-white flex-shrink-0">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Meetings
+            </h3>
+          </div>
+          <CardContent className="p-4 flex-1 overflow-y-auto">
+            <div className="space-y-4">
+              {/* Today's Meetings */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Today's Meetings</h4>
+                {leads.some(lead => lead.meeting_date === today) ? (
+                  <div className="space-y-2">
+                    {leads
+                      .filter(lead => lead.meeting_date === today)
+                      .sort((a, b) => (a.meeting_time || '').localeCompare(b.meeting_time || ''))
+                      .map(lead => (
+                        <div key={lead.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h4 className="font-medium text-gray-900">{lead.company_name}</h4>
+                              <div className="text-sm text-gray-500">
+                                Time: {lead.meeting_time}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500">{lead.contact_number}</div>
+                            <div className="text-sm text-gray-500">{lead.email}</div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-3 text-gray-500">
+                    No meetings scheduled for today
+                  </div>
+                )}
+              </div>
+
+              {/* Upcoming Meetings */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Upcoming Meetings</h4>
+                {leads.some(lead => lead.meeting_date && lead.meeting_date > today) ? (
+                  <div className="space-y-2">
+                    {leads
+                      .filter(lead => lead.meeting_date && lead.meeting_date > today)
+                      .sort((a, b) => {
+                        const dateCompare = (a.meeting_date || '').localeCompare(b.meeting_date || '');
+                        if (dateCompare !== 0) return dateCompare;
+                        return (a.meeting_time || '').localeCompare(b.meeting_time || '');
+                      })
+                      .map(lead => (
+                        <div key={lead.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h4 className="font-medium text-gray-900">{lead.company_name}</h4>
+                              <div className="text-sm text-gray-500">
+                                {lead.meeting_date} at {lead.meeting_time}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-500">{lead.contact_number}</div>
+                            <div className="text-sm text-gray-500">{lead.email}</div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-3 text-gray-500">
+                    No upcoming meetings scheduled
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

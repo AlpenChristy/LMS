@@ -13,28 +13,40 @@ export const useLeads = () => {
   useEffect(() => {
     const fetchLeads = async () => {
       try {
+        console.log('=== useLeads Hook ===');
+        console.log('Starting to fetch leads...');
+        
         const { data, error } = await supabaseAdmin
           .from('leads')
-          .select(`
-            *,
-            meeting_summaries (
-              id,
-              lead_id,
-              summary,
-              meeting_date,
-              created_at,
-              user_id
-            )
-          `)
+          .select('*')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setLeads((data || []).map(lead => ({
+        if (error) {
+          console.error('Error fetching leads:', error);
+          throw error;
+        }
+
+        console.log('Raw data from database:', data);
+        
+        // Ensure all required fields are present
+        const formattedLeads = (data || []).map(lead => ({
           ...lead,
-          status: lead.status as LeadStatus
-        })));
+          status: lead.status as LeadStatus,
+          proposal_status: lead.proposal_status || 'not_given',
+          meeting_date: lead.meeting_date || null,
+          meeting_time: lead.meeting_time || null,
+          created_at: lead.created_at || null,
+          updated_at: lead.updated_at || null,
+          user_id: lead.user_id || DEFAULT_USER_ID
+        })) as Lead[];
+
+        console.log('Formatted leads:', formattedLeads);
+        console.log('Number of leads:', formattedLeads.length);
+        console.log('First lead (if any):', formattedLeads[0]);
+        
+        setLeads(formattedLeads);
       } catch (error) {
-        console.error('Error fetching leads:', error);
+        console.error('Error in useLeads:', error);
         toast({
           title: "Error",
           description: "Failed to fetch leads",
@@ -57,6 +69,7 @@ export const useLeads = () => {
           table: 'leads'
         }, 
         async (payload) => {
+          console.log('Received realtime update:', payload);
           if (payload.eventType === 'INSERT') {
             // Fetch the complete lead data with meeting summaries
             const { data, error } = await supabaseAdmin
@@ -121,14 +134,19 @@ export const useLeads = () => {
 
   const addLead = async (newLead: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>) => {
     try {
+      // Format the meeting date and time
+      const formattedLead = {
+        ...newLead,
+        meeting_date: newLead.meeting_date ? new Date(newLead.meeting_date).toISOString() : null,
+        meeting_time: newLead.meeting_time || null,
+        created_at: new Date().toISOString(),
+        user_id: DEFAULT_USER_ID
+      };
+
       // First insert the lead
       const { data: insertedLead, error: insertError } = await supabaseAdmin
         .from('leads')
-        .insert([{ 
-          ...newLead,
-          created_at: new Date().toISOString(),
-          user_id: DEFAULT_USER_ID
-        }])
+        .insert([formattedLead])
         .select()
         .single();
 
@@ -188,13 +206,18 @@ export const useLeads = () => {
       // Extract only the fields that belong to the leads table
       const { meeting_summaries, ...leadData } = updatedLead;
 
+      // Format the meeting date and time
+      const formattedLead = {
+        ...leadData,
+        meeting_date: leadData.meeting_date ? new Date(leadData.meeting_date).toISOString() : null,
+        meeting_time: leadData.meeting_time || null,
+        user_id: DEFAULT_USER_ID
+      };
+
       // First update the lead
       const { error: updateError } = await supabaseAdmin
         .from('leads')
-        .update({
-          ...leadData,
-          user_id: DEFAULT_USER_ID
-        })
+        .update(formattedLead)
         .eq('id', updatedLead.id);
 
       if (updateError) throw updateError;

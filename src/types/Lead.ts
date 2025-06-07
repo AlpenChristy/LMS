@@ -26,6 +26,8 @@ export interface Lead {
   email: string;
   status: LeadStatus;
   proposal_status: ProposalStatus;
+  meeting_date: string | null;
+  meeting_time: string | null;
   created_at: string | null;
   updated_at: string | null;
   user_id: string;

@@ -104,8 +104,8 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Meeting Notes - {lead.company_name}
+              <Calendar className="h-5 w-5" />
+              Meeting Notes - {lead.company_name}
           </DialogTitle>
           <DialogDescription>
             <div className="flex items-center gap-2 mt-2">
@@ -234,7 +234,7 @@ const MeetingNotesDialog = ({ lead, onClose, onUpdate }: MeetingNotesDialogProps
               </div>
             )}
           </div>
-        </div>
+    </div>
       </DialogContent>
     </Dialog>
   );

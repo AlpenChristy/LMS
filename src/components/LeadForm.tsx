@@ -14,12 +14,33 @@ const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 interface LeadFormProps {
   lead?: Lead;
-  onSubmit: (data: Omit<Lead, "id" | "created_at" | "updated_at" | "meeting_summaries">) => void;
+  onSubmit: (data: Omit<Lead, "id" | "created_at" | "updated_at" | "meeting_summaries"> & { id?: string }) => void;
   onClose: () => void;
 }
 
+// Function to format date for date input
+const formatDateForInput = (dateString: string | null): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Function to format time for time input
+const formatTimeForInput = (timeString: string | null): string => {
+  if (!timeString) return '';
+  // If it's a full datetime string, extract just the time part
+  if (timeString.includes('T')) {
+    return timeString.split('T')[1].slice(0, 5);
+  }
+  return timeString;
+};
+
 export const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
-  const [formData, setFormData] = useState<Omit<Lead, "id" | "created_at" | "updated_at" | "meeting_summaries">>({
+  const [formData, setFormData] = useState<Omit<Lead, "id" | "created_at" | "updated_at" | "meeting_summaries"> & { id?: string }>({
+    id: lead?.id,
     company_name: lead?.company_name || '',
     lead_source: lead?.lead_source || '',
     assigned_to: lead?.assigned_to || '',
@@ -33,12 +54,20 @@ export const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
     email: lead?.email || '',
     status: lead?.status || 'new',
     proposal_status: lead?.proposal_status || 'not_given',
+    meeting_date: formatDateForInput(lead?.meeting_date),
+    meeting_time: formatTimeForInput(lead?.meeting_time),
     user_id: lead?.user_id || 'default_user_id'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    // Store the exact time as entered
+    const submitData = {
+      ...formData,
+      meeting_date: formData.meeting_date || null,
+      meeting_time: formData.meeting_time || null
+    };
+    onSubmit(submitData);
   };
 
   return (
@@ -80,6 +109,14 @@ export const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
                 />
               </div>
               <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={formData.address || ''}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </div>
+              <div>
                 <Label htmlFor="lead_source">Lead Source</Label>
                 <Select
                   value={formData.lead_source}
@@ -116,6 +153,15 @@ export const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
                 />
               </div>
               <div>
+                <Label htmlFor="deadline">Deadline</Label>
+                <Input
+                  id="deadline"
+                  type="date"
+                  value={formData.deadline || ''}
+                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                />
+              </div>
+              <div>
                 <Label htmlFor="potential">Potential Value</Label>
                 <Input
                   id="potential"
@@ -123,6 +169,56 @@ export const LeadForm = ({ lead, onSubmit, onClose }: LeadFormProps) => {
                   value={formData.potential || ''}
                   onChange={(e) => setFormData({ ...formData, potential: e.target.value ? Number(e.target.value) : null })}
                 />
+              </div>
+              <div>
+                <Label htmlFor="last_follow_up">Last Follow Up</Label>
+                <Input
+                  id="last_follow_up"
+                  type="date"
+                  value={formData.last_follow_up || ''}
+                  onChange={(e) => setFormData({ ...formData, last_follow_up: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="next_follow_up">Next Follow Up</Label>
+                <Input
+                  id="next_follow_up"
+                  type="date"
+                  value={formData.next_follow_up || ''}
+                  onChange={(e) => setFormData({ ...formData, next_follow_up: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="meeting_date">Meeting Date</Label>
+                  <Input
+                    id="meeting_date"
+                    type="date"
+                    value={formData.meeting_date}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        meeting_date: value || null
+                      }));
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="meeting_time">Meeting Time</Label>
+                  <Input
+                    id="meeting_time"
+                    type="time"
+                    value={formData.meeting_time}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        meeting_time: value || null
+                      }));
+                    }}
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="status">Status</Label>

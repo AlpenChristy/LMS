@@ -38,12 +38,23 @@ const Index = () => {
     }
   };
 
-  const handleUpdateLead = async (updatedLead: Lead) => {
+  const handleUpdateLead = async (updatedLead: Omit<Lead, "id" | "created_at" | "updated_at" | "meeting_summaries"> & { id?: string }) => {
     try {
-      await updateLead({
+      if (!updatedLead.id) {
+        throw new Error('Lead ID is required for update');
+      }
+
+      // Format the meeting date if it exists
+      const formattedLead = {
         ...updatedLead,
+        meeting_date: updatedLead.meeting_date ? new Date(updatedLead.meeting_date).toISOString() : null,
         updated_at: new Date().toISOString()
-      });
+      };
+
+      await updateLead({
+        ...formattedLead,
+        id: updatedLead.id
+      } as Lead);
       setEditingLead(null);
       setIsFormOpen(false);
     } catch (error) {
@@ -309,23 +320,23 @@ const Index = () => {
       </div>
 
       {/* Forms */}
-      {isFormOpen && (
-        <LeadForm
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditingLead(null);
-          }}
+        {isFormOpen && (
+          <LeadForm
+            onClose={() => {
+              setIsFormOpen(false);
+              setEditingLead(null);
+            }}
           onSubmit={editingLead ? handleUpdateLead : handleAddLead}
           lead={editingLead}
-        />
-      )}
+          />
+        )}
 
-      {isImportOpen && (
-        <ImportLeads
+        {isImportOpen && (
+            <ImportLeads
           onClose={() => setIsImportOpen(false)}
-          onImport={handleImportLeads}
-        />
-      )}
+              onImport={handleImportLeads}
+            />
+        )}
     </div>
   );
 };
