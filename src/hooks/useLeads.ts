@@ -134,9 +134,13 @@ export const useLeads = () => {
 
   const addLead = async (newLead: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>) => {
     try {
+      // Generate a UUID for the new lead
+      const uuid = crypto.randomUUID();
+
       // Format the meeting date and time
       const formattedLead = {
         ...newLead,
+        id: uuid,
         meeting_date: newLead.meeting_date ? new Date(newLead.meeting_date).toISOString() : null,
         meeting_time: newLead.meeting_time || null,
         created_at: new Date().toISOString(),
