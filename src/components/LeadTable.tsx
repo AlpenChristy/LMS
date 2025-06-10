@@ -146,6 +146,7 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
           <TableHeader>
             <TableRow>
               <TableHead>Company</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Assigned To</TableHead>
@@ -165,6 +166,17 @@ const LeadTable = ({ leads, onEdit, onDelete, onUpdate }: LeadTableProps) => {
                     <div className="text-sm text-gray-500">
                       {lead.requirements ? `${lead.requirements.substring(0, 50)}...` : ''}
                     </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-gray-600">
+                    {lead.created_at ? new Date(lead.created_at).toLocaleString(undefined, {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : '-'}
                   </div>
                 </TableCell>
                 <TableCell>
