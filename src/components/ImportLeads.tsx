@@ -8,13 +8,15 @@ import { toast } from "@/hooks/use-toast";
 import * as XLSX from 'xlsx';
 import { Lead } from '@/types/Lead';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface ImportLeadsProps {
   onImport: (leads: Omit<Lead, 'id' | 'created_at' | 'meeting_summaries'>[]) => void;
   onClose: () => void;
+  isOpen: boolean;
 }
 
-const ImportLeads = ({ onImport, onClose }: ImportLeadsProps) => {
+const ImportLeads = ({ onImport, onClose, isOpen }: ImportLeadsProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({
     company_name: '',
@@ -134,99 +136,103 @@ const ImportLeads = ({ onImport, onClose }: ImportLeadsProps) => {
   };
 
   return (
-    <Card className="w-full max-w-2xl">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-bold">Import Leads</CardTitle>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="file">Excel File</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="file"
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileChange}
-              className="flex-1"
-            />
-            <Button variant="outline" size="icon" onClick={() => setFile(null)}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <Card className="w-full border-0 shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xl font-bold">Import Leads</CardTitle>
+            <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
-          </div>
-        </div>
-
-        {headers.length > 0 && (
-          <div className="space-y-4">
-            <div className="text-sm font-medium">Map Excel Columns</div>
-            <div className="grid gap-4">
-              {Object.entries(mapping).map(([key, value]) => (
-                <div key={key} className="grid grid-cols-2 gap-2 items-center">
-                  <Label className="capitalize">{key.replace('_', ' ')}</Label>
-                  <Select
-                    value={value}
-                    onValueChange={(newValue) => setMapping({ ...mapping, [key]: newValue })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {headers.map((header) => (
-                        <SelectItem key={header} value={header}>
-                          {header}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="file">Excel File</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="file"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="flex-1"
+                />
+                <Button variant="outline" size="icon" onClick={() => setFile(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            {preview.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Preview</div>
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {headers.map((header) => (
-                          <th key={header} className="px-4 py-2 text-left font-medium text-gray-500">
-                            {header}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preview.map((row, i) => (
-                        <tr key={i} className="border-t">
+            {headers.length > 0 && (
+              <div className="space-y-4">
+                <div className="text-sm font-medium">Map Excel Columns</div>
+                <div className="grid gap-4">
+                  {Object.entries(mapping).map(([key, value]) => (
+                    <div key={key} className="grid grid-cols-2 gap-2 items-center">
+                      <Label className="capitalize">{key.replace('_', ' ')}</Label>
+                      <Select
+                        value={value}
+                        onValueChange={(newValue) => setMapping({ ...mapping, [key]: newValue })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select column" />
+                        </SelectTrigger>
+                        <SelectContent>
                           {headers.map((header) => (
-                            <td key={header} className="px-4 py-2">
-                              {row[header] || ''}
-                            </td>
+                            <SelectItem key={header} value={header}>
+                              {header}
+                            </SelectItem>
                           ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+
+                {preview.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Preview</div>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            {headers.map((header) => (
+                              <th key={header} className="px-4 py-2 text-left font-medium text-gray-500">
+                                {header}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {preview.map((row, i) => (
+                            <tr key={i} className="border-t">
+                              {headers.map((header) => (
+                                <td key={header} className="px-4 py-2">
+                                  {row[header] || ''}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleImport}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import Leads
+                  </Button>
                 </div>
               </div>
             )}
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleImport}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import Leads
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
 

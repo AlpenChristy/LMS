@@ -332,10 +332,11 @@ const Index = () => {
         )}
 
         {isImportOpen && (
-            <ImportLeads
-          onClose={() => setIsImportOpen(false)}
-              onImport={handleImportLeads}
-            />
+          <ImportLeads
+            onClose={() => setIsImportOpen(false)}
+            onImport={handleImportLeads}
+            isOpen={isImportOpen}
+          />
         )}
     </div>
   );
